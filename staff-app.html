@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head>
+<script src="config.js"></script><script src="staff-bridge.js"></script><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="connect-src https://epcbxnfouempccysckhz.supabase.co https://cdn.jsdelivr.net;"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173b7a"><meta name="description" content="تسجيل حركة الدوام اليومية لموظفات مركز __DQ_CENTER_NAME__">
+<meta property="og:title" content="حركة الدوام اليومية — مركز دار القرآن نساء ٢"><meta property="og:description" content="تسجيل حركة الدوام اليومية للمعلمات والإداريات">
+<title> حركة الدوام اليومية</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#1745AD;color:#17233d;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}main{width:100%;max-width:470px;background:#fff;border:1px solid #d7dfeb;border-radius:24px;padding:28px;box-shadow:0 12px 40px #173b7a12}.brand{color:#173b7a;font-size:13px;line-height:1.9;font-weight:bold}.badge{display:inline-block;padding:5px 12px;background:#eef3fc;border-radius:20px;font-size:12px;color:#173b7a;margin-bottom:14px}h1{font-size:26px;line-height:1.6;margin:8px 0 12px}p{line-height:1.9}.muted{color:#65748a;font-size:14px}label{display:block}.choice{border:1px solid #d2dbe7;border-radius:14px;padding:17px 14px;margin:10px 0;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:12px}.choice:has(input:checked){border:2px solid #173b7a;background:#eef3fc;padding:16px 13px}.choice input{width:22px;height:22px;accent-color:#173b7a}#code{width:100%;padding:16px;border:1px solid #aebdd0;border-radius:12px;margin:12px 0;font-size:23px;direction:ltr;text-align:center;letter-spacing:2px}button{width:100%;background:#173b7a;color:white;padding:17px;border:0;border-radius:13px;font-family:inherit;font-size:17px;font-weight:bold;cursor:pointer;margin-top:10px}button:disabled{opacity:.55;cursor:wait}.secondary{background:transparent;color:#65748a;font-size:13px;padding:10px}#message{line-height:1.8;background:#fff3d8;color:#795816;border-radius:12px;padding:12px;margin:14px 0}#success{background:#eaf7f1;padding:20px;border-radius:16px;color:#176347}#success h2{margin-top:0}dialog{border:0;border-radius:20px;max-width:390px;width:90%;padding:24px}dialog::backdrop{background:#17233d80}#cancel{background:#e8eef7;color:#173b7a}[hidden]{display:none!important}footer{font-size:11px;color:#8995a7;text-align:center;margin-top:25px}
+</style></head><body>
+<div style="padding:12px;text-align:center;background:#173b7a;color:white">__DQ_CENTER_NAME__</div><main>
+<div class="brand">مركز __DQ_CENTER_NAME__</div><h1>حركة الدوام اليومية</h1><div class="badge">للمعلمات والإداريات</div>
+<div id="message" role="status" hidden></div><p id="weekendNotice" role="status" hidden style="background:#fff3d8;color:#795816;padding:12px;border-radius:12px">تسجيل حركة الدوام متاح من الأحد إلى الخميس فقط. لا يمكن التسجيل يومَي الجمعة والسبت.</p>
+<section id="login"><p>أدخلي رمزك الخاص أول مرة، وسنحفظ دخولك على هذا الجهاز.</p><form id="loginForm"><label for="code">رمز الموظفة</label><input id="code" type="password" inputmode="numeric" autocomplete="current-password" maxlength="4" minlength="4" required placeholder="رمزك من ٤ أرقام"><button id="loginButton">دخول</button></form><p class="muted">رمزك تستلمينه من المسؤولة على الخاص.</p></section>
+<section id="record" hidden><h2 id="staffName"></h2><p class="muted" id="dateLabel"></p><p id="balance" class="muted" role="status"></p><div id="choices">
+<label class="choice"><input type="radio" name="type" value="إذن بداية الدوام">إذن بداية الدوام</label>
+<label class="choice"><input type="radio" name="type" value="إذن نهاية الدوام">إذن نهاية الدوام</label>
+<label class="choice"><input type="radio" name="type" value="مرضية">مرضية</label>
+<label class="choice"><input type="radio" name="type" value="طارئة">طارئة</label>
+<p class="muted">تسجيل واحد لليوم. بعد التأكيد لا يمكن تعديل الحالة أو حذفها.</p><button id="send">تأكيد التسجيل</button></div>
+<div id="success" hidden><h2>✓ تم تسجيل حالتك اليوم</h2><p id="saved"></p><p>انتهى التسجيل لهذا اليوم. يمكنك إغلاق الصفحة.</p></div>
+<button id="switchAccount" class="secondary">تغيير الحساب على هذا الجهاز</button></section>
+
+</main><dialog id="confirmation"><h2>تأكيد الإرسال النهائي</h2><p id="confirmText"></p><p class="muted">بعد الإرسال لا يمكن التعديل أو الحذف أو تسجيل حالة ثانية لليوم.</p><button id="confirmSend">إرسال نهائي</button><button id="cancel">رجوع</button></dialog>
+<script>
+const API='https://epcbxnfouempccysckhz.supabase.co/rest/v1/rpc/';
+const KEY='sb_publishable_gdrF9S7VFmhwlY1ia0MVCw__RJHGgMh';
+const SESSION='dq_trial_staff_session_v1';let token='',state=null,busy=false;
+const el=id=>document.getElementById(id);
+try{token=localStorage.getItem(SESSION)||''}catch(e){}
+function notice(text){el('message').textContent=text;el('message').hidden=!text}
+function cleanCode(value){return value.replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[\s-]/g,'')}
+
+function kuwaitDate(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuwait',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((a,p)=>(a[p.type]=p.value,a),{});}
+function weekendDate(date){const day=new Date(date+'T12:00:00Z').getUTCDay();return day===5||day===6;}
+function isWeekend(){const p=kuwaitDate();return weekendDate(p.year+'-'+p.month+'-'+p.day);}
+function afterFiveKuwait(){const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuwait',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Number(p.find(x=>x.type==='hour').value)>=17;}
+function updateWeekend(){const closed=isWeekend()||afterFiveKuwait()||!!(state?.date&&weekendDate(state.date));el('weekendNotice').hidden=!closed;el('send').disabled=busy||closed;el('confirmSend').disabled=busy||closed;return closed;}
+function checkWorkday(){if(updateWeekend()){notice(afterFiveKuwait()?'انتهى وقت تسجيل حركة الدوام لهذا اليوم.':'لا يمكن تسجيل حركة الدوام يومَي الجمعة والسبت.');return false}return true;}
+
+async function rpc(name,args){if(name==='dq_trial_submit'&&afterFiveKuwait())throw Error('AFTER_FIVE_CLOSED');if(name==='dq_trial_submit'&&(isWeekend()||weekendDate(args.p_day)))throw Error('WEEKEND_CLOSED');let r;try{r=await fetch(API+name,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(20000)})}catch(e){throw Error('NETWORK')}
+ const body=await r.json().catch(()=>({}));if(!r.ok)throw Error(body.message||'SERVER');return body}
+function renderBalance(data){const l=data.limits,box=el('balance');if(!l){box.textContent='';return}const ar=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);box.textContent='المتبقي من استئذانات الشهر: '+ar(Math.max(0,4-l.permissionUsed))+' من ٤ — المتبقي من طارئة السنة: '+ar(Math.max(0,4-l.emergencyUsed))+' من ٤';}
+function checkAllowance(type){if(!state?.limits){notice('يلزم تحديث تفعيل الأرصدة لدى المسؤولة قبل التسجيل.');return false}const l=state.limits;if(type.includes('إذن')&&l.permissionUsed>=4){notice('لقد نفد رصيدك من الاستئذانات لهذا الشهر؛ الحد ٤ للبداية والنهاية معًا.');return false}if(type==='طارئة'&&l.emergencyUsed>=4){notice('لقد نفد رصيدك من الإجازات الطارئة لهذا العام؛ الحد ٤ أيام.');return false}return true}
+function showState(data){state=data;renderBalance(data);el('login').hidden=true;el('record').hidden=false;el('staffName').textContent=data.name;el('dateLabel').textContent=(data.kind||'')+' — '+new Date(data.date+'T12:00:00+03:00').toLocaleDateString('ar-KW',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Kuwait'});el('choices').hidden=!!data.entry;el('success').hidden=!data.entry;if(data.entry)el('saved').textContent=data.entry.type+' — الساعة '+data.entry.time;updateWeekend();}
+function explain(error){if(error.message.includes('AFTER_FIVE_CLOSED'))return notice('انتهى وقت تسجيل حركة الدوام لهذا اليوم.');if(error.message.includes('WEEKEND_CLOSED'))return notice('لا يمكن تسجيل حركة الدوام يومَي الجمعة والسبت.');if(error.message.includes('PERMISSION_LIMIT_REACHED')){refresh();return notice('لقد نفد رصيدك من الاستئذانات لهذا الشهر؛ الحد ٤ للبداية والنهاية معًا.')}if(error.message.includes('EMERGENCY_LIMIT_REACHED')){refresh();return notice('لقد نفد رصيدك من الإجازات الطارئة لهذا العام؛ الحد ٤ أيام.')}if(error.message.includes('SESSION_EXPIRED')){forget();return notice('انتهت جلسة الدخول. أدخلي رمزك مرة أخرى.')}if(error.message.includes('DAY_CHANGED')){refresh();return notice('تغيّر اليوم. راجعي التاريخ واختاري الحالة من جديد.')}if(error.message.includes('INVALID_CODE'))return notice('الرمز غير صحيح. راجعي الرمز المرسل لك من المسؤولة.');notice('تعذر الاتصال. تحققي من الإنترنت ثم حاولي مجددًا. إذا استمرت المشكلة راجعي المسؤولة.')}
+function setBusy(value){busy=value;['loginButton','send','confirmSend','switchAccount'].forEach(id=>el(id).disabled=value);updateWeekend()}
+function forget(){token='';state=null;try{localStorage.removeItem(SESSION)}catch(e){}el('login').hidden=false;el('record').hidden=true;el('code').value='';document.querySelectorAll('input[name=type]').forEach(x=>x.checked=false)}
+async function refresh(){if(!token||busy)return;try{showState(await rpc('dq_trial_status',{p_token:token}));notice('')}catch(e){explain(e)}}
+el('loginForm').onsubmit=async event=>{event.preventDefault();if(busy)return;const code=cleanCode(el('code').value);if(!/^\d{4}$/.test(code))return notice('أدخلي الرمز المكوّن من ٤ أرقام.');setBusy(true);notice('جارٍ التحقق…');try{const data=await rpc('dq_trial_login',{p_code:code});token=data.token;el('code').value='';let remembered=true;try{localStorage.setItem(SESSION,token)}catch(e){remembered=false}showState(data);notice(remembered?'':'تم الدخول، لكن تعذر حفظه على الجهاز. احتفظي برمزك للدخول لاحقًا.')}catch(e){explain(e)}finally{setBusy(false)}};
+el('send').onclick=()=>{if(busy||!state||state.entry)return;if(!checkWorkday())return;const choice=document.querySelector('input[name=type]:checked');if(!choice)return notice('اختاري حالتك أولًا.');if(!checkAllowance(choice.value))return;notice('');el('confirmText').textContent=state.name+' — '+choice.value+' — '+state.date;el('confirmation').showModal()};
+el('cancel').onclick=()=>el('confirmation').close();
+el('confirmSend').onclick=async()=>{if(busy)return;if(!checkWorkday()){el('confirmation').close();return;}const choice=document.querySelector('input[name=type]:checked');if(!choice)return;setBusy(true);el('confirmation').close();notice('جارٍ تسجيل الحالة…');try{const current=await rpc('dq_trial_status',{p_token:token});if(current.date!==state.date){showState(current);document.querySelectorAll('input[name=type]').forEach(x=>x.checked=false);return notice('تغيّر اليوم. راجعي التاريخ واختاري الحالة من جديد.')}showState(current);if(current.entry)return;if(!checkWorkday())return;if(!checkAllowance(choice.value))return;const data=await rpc('dq_trial_submit',{p_token:token,p_type:choice.value,p_day:state.date});showState(data);notice(data.alreadyRecorded?'سبق تسجيل حالة لهذا اليوم؛ تظهر حالتك المعتمدة أدناه.':'')}catch(e){explain(e)}finally{setBusy(false)}};
+el('switchAccount').onclick=()=>{if(confirm('تسجيل الخروج من هذا الجهاز؟ ستحتاجين رمزك للدخول مرة أخرى.')){forget();notice('')}};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});window.addEventListener('focus',refresh);
+setInterval(()=>{if(state&&!el('confirmation').open)refresh()},60000);
+updateWeekend();setInterval(updateWeekend,10000);
+if(token){el('login').hidden=true;notice('جارٍ استعادة دخولك…');refresh().finally(()=>{if(!state)el('login').hidden=false})}
+</script></body></html>
